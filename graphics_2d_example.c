@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ppapi/c/pp_macros.h"
+// #include "ppapi/c/pp_macros.h"
+
+#define PP_INLINE static __inline__
 
 // #include "ppapi/c/pp_completion_callback.h"
 
@@ -15,7 +17,6 @@ typedef enum {
   PP_COMPLETIONCALLBACK_FLAG_NONE = 0 << 0,
   PP_COMPLETIONCALLBACK_FLAG_OPTIONAL = 1 << 0
 } PP_CompletionCallback_Flag;
-PP_COMPILE_ASSERT_SIZE_IN_BYTES(PP_CompletionCallback_Flag, 4);
 
 struct PP_CompletionCallback {
   PP_CompletionCallback_Func func;
@@ -60,19 +61,16 @@ enum {
 // #include "ppapi/c/pp_instance.h"
 
 typedef int32_t PP_Instance;
-PP_COMPILE_ASSERT_SIZE_IN_BYTES(PP_Instance, 4);
 
 // #include "ppapi/c/pp_module.h"
 
 typedef int32_t PP_Module;
-PP_COMPILE_ASSERT_SIZE_IN_BYTES(PP_Module, 4);
 
 // #include "ppapi/c/pp_size.h"
 struct PP_Size {
   int32_t width;
   int32_t height;
 };
-PP_COMPILE_ASSERT_STRUCT_SIZE_IN_BYTES(PP_Size, 8);
 
 // #include "ppapi/c/pp_bool.h"
 
@@ -80,7 +78,6 @@ typedef enum {
   PP_FALSE = 0,
   PP_TRUE = 1
 } PP_Bool;
-PP_COMPILE_ASSERT_SIZE_IN_BYTES(PP_Bool, 4);
 
 // #include "ppapi/c/pp_var.h
 
@@ -89,7 +86,6 @@ struct PP_Var {
   int32_t padding;
   int64_t value;
 };
-PP_COMPILE_ASSERT_STRUCT_SIZE_IN_BYTES(PP_Var, 16);
 
 // #include "ppapi/c/ppb.h"
 
@@ -98,7 +94,6 @@ typedef const void* (*PPB_GetInterface)(const char* interface_name);
 // #include "ppapi/c/pp_resource.h"
 
 typedef int32_t PP_Resource;
-PP_COMPILE_ASSERT_SIZE_IN_BYTES(PP_Resource, 4);
 
 // #include "ppapi/c/ppb_core.h"
 
@@ -122,13 +117,11 @@ struct PP_Point {
   int32_t x;
   int32_t y;
 };
-PP_COMPILE_ASSERT_STRUCT_SIZE_IN_BYTES(PP_Point, 8);
 
 struct PP_FloatPoint {
   float x;
   float y;
 };
-PP_COMPILE_ASSERT_STRUCT_SIZE_IN_BYTES(PP_FloatPoint, 8);
 
 // #include "ppapi/c/pp_rect.h"
 
@@ -136,7 +129,6 @@ struct PP_Rect {
   struct PP_Point point;
   struct PP_Size size;
 };
-PP_COMPILE_ASSERT_STRUCT_SIZE_IN_BYTES(PP_Rect, 16);
 
 // #include "ppapi/c/ppb_graphics_2d.h"
 
@@ -170,14 +162,12 @@ typedef enum {
   PP_IMAGEDATAFORMAT_BGRA_PREMUL,
   PP_IMAGEDATAFORMAT_RGBA_PREMUL
 } PP_ImageDataFormat;
-PP_COMPILE_ASSERT_SIZE_IN_BYTES(PP_ImageDataFormat, 4);
 
 struct PP_ImageDataDesc {
   PP_ImageDataFormat format;
   struct PP_Size size;
   int32_t stride;
 };
-PP_COMPILE_ASSERT_STRUCT_SIZE_IN_BYTES(PP_ImageDataDesc, 16);
 
 #define PPB_IMAGEDATA_INTERFACE_0_3 "PPB_ImageData;0.3"
 #define PPB_IMAGEDATA_INTERFACE_1_0 "PPB_ImageData;1.0"
