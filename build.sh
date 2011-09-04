@@ -1,5 +1,13 @@
 #!/bin/sh
 set -e
-x86_64-nacl-gcc -g -o x86_64-dbg-demo.nexe x86_64/*.S graphics_2d_example.c -Wl,--defsym,__nacl_rodata_start=0x10000000 -nostdlib -Wl,-T,x86_64/elf_nacl.x #-lnacl #-lc
-cp x86_64-dbg-demo.nexe x86_64-opt-demo.nexe
-x86_64-nacl-strip x86_64-opt-demo.nexe
+
+build_nexe() {
+  ARCH=$1 # i686 or x86_64 or arm
+  $ARCH-nacl-gcc -g -o $ARCH-dbg-demo.nexe $ARCH/*.S graphics_2d_example.c -Wl,--defsym,__nacl_rodata_start=0x10000000 -nostdlib -Wl,-T,$ARCH/elf_nacl.x
+  cp $ARCH-dbg-demo.nexe $ARCH-opt-demo.nexe
+  $ARCH-nacl-strip $ARCH-opt-demo.nexe  
+}
+
+build_nexe x86_64
+build_nexe i686
+

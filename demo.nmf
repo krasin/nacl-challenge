@@ -1,5 +1,6 @@
 {
   "program": {
-    "x86-64": {"url": "x86_64-opt-demo.nexe"}
+    "x86-64": {"url": "x86_64-opt-demo.nexe"},
+    "x86-32": {"url": "i686-opt-demo.nexe"}
   }
 }
