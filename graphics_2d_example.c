@@ -21,11 +21,11 @@ typedef long int  clock_t;
 typedef long int off_t;
 
 char** environ;
-ssize_t write(int fd, const void *buf, size_t count);
-void *malloc(size_t size);
-size_t strlen(const char *str);
-int strcmp(const char *s1, const char *s2);
-void _exit(int status);
+static ssize_t write(int fd, const void *buf, size_t count);
+static void *malloc(size_t size);
+static size_t strlen(const char *str);
+static int strcmp(const char *s1, const char *s2);
+static void _exit(int status);
 
 // #include "ppapi/c/pp_macros.h"
 
@@ -429,13 +429,13 @@ static struct PPP_Instance instance_interface = {
 
 PP_EXPORT const void* PPP_GetInterface(const char* interface_name) {
   if (strcmp(interface_name, PPP_INSTANCE_INTERFACE) == 0) {
-    /*    struct PPP_Instance* ii = (struct PPP_Instance*)malloc(sizeof(*ii));
-    ii->DidCreate = &Instance_DidCreate;
-    ii->DidDestroy =  &Instance_DidDestroy;
-    ii->DidChangeView = &Instance_DidChangeView;
-    ii->DidChangeFocus = &Instance_DidChangeFocus;
-    ii->HandleDocumentLoad = &Instance_HandleDocumentLoad;
-    return ii;*/
+    struct PPP_Instance* ii = (struct PPP_Instance*)malloc(sizeof(*ii));
+    //ii->DidCreate = &Instance_DidCreate;
+    //    ii->DidDestroy =  &Instance_DidDestroy;
+    //    ii->DidChangeView = &Instance_DidChangeView;
+    //    ii->DidChangeFocus = &Instance_DidChangeFocus;
+    //    ii->HandleDocumentLoad = &Instance_HandleDocumentLoad;
+    /*return ii;*/
     return &instance_interface;
   }
   return NULL;
@@ -820,13 +820,13 @@ int strcmp(const char *s1, const char *s2) {
   }
 }
 
-void *malloc(size_t size) {
+static void *malloc(size_t size) {
   void *res;
   int ret = ih.__libnacl_irt_memory.mmap(&res, size, PROT_READ | PROT_WRITE, 0, -1, 0);
   return res;
 }
 
-size_t strlen(const char *str) {
+static size_t strlen(const char *str) {
   size_t l = 0;
   if (str == NULL) {
     return 0;
@@ -838,7 +838,7 @@ size_t strlen(const char *str) {
   return l;
 }
 
-ssize_t write(int fd, const void *buf, size_t count) {
+static ssize_t write(int fd, const void *buf, size_t count) {
   ssize_t wrote;
   ih.__libnacl_irt_fdio.write(fd, buf, count, &wrote);
   return wrote;
