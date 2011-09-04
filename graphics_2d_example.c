@@ -394,15 +394,6 @@ PP_Bool Instance_HandleDocumentLoad(PP_Instance pp_instance,
   return PP_FALSE;
 }
 
-static struct PPP_Instance instance_interface = {
-  &Instance_DidCreate,
-  &Instance_DidDestroy,
-  &Instance_DidChangeView,
-  &Instance_DidChangeFocus,
-  &Instance_HandleDocumentLoad
-};
-
-
 /* Global entrypoints --------------------------------------------------------*/
 
 PP_EXPORT int32_t PPP_InitializeModule(PP_Module module,
@@ -427,9 +418,26 @@ PP_EXPORT int32_t PPP_InitializeModule(PP_Module module,
 PP_EXPORT void PPP_ShutdownModule() {
 }
 
+static struct PPP_Instance instance_interface = {
+  &Instance_DidCreate,
+  &Instance_DidDestroy,
+  &Instance_DidChangeView,
+  &Instance_DidChangeFocus,
+  &Instance_HandleDocumentLoad
+};
+
+
 PP_EXPORT const void* PPP_GetInterface(const char* interface_name) {
-  if (strcmp(interface_name, PPP_INSTANCE_INTERFACE) == 0)
+  if (strcmp(interface_name, PPP_INSTANCE_INTERFACE) == 0) {
+    /*    struct PPP_Instance* ii = (struct PPP_Instance*)malloc(sizeof(*ii));
+    ii->DidCreate = &Instance_DidCreate;
+    ii->DidDestroy =  &Instance_DidDestroy;
+    ii->DidChangeView = &Instance_DidChangeView;
+    ii->DidChangeFocus = &Instance_DidChangeFocus;
+    ii->HandleDocumentLoad = &Instance_HandleDocumentLoad;
+    return ii;*/
     return &instance_interface;
+  }
   return NULL;
 }
 
@@ -675,15 +683,21 @@ struct nacl_irt_memory {
   int (*munmap)(void *addr, size_t len);
 };
 
-struct nacl_irt_basic __libnacl_irt_basic;
-struct nacl_irt_fdio __libnacl_irt_fdio;
+struct irt_holder {
+  TYPE_nacl_irt_query __nacl_irt_query;
+  struct nacl_irt_basic __libnacl_irt_basic;
+  struct nacl_irt_fdio __libnacl_irt_fdio;
 //struct nacl_irt_filename __libnacl_irt_filename;
-struct nacl_irt_memory __libnacl_irt_memory;
+  struct nacl_irt_memory __libnacl_irt_memory;
 //struct nacl_irt_dyncode __libnacl_irt_dyncode;
 //struct nacl_irt_tls __libnacl_irt_tls;
 //struct nacl_irt_blockhook __libnacl_irt_blockhook;
 
-TYPE_nacl_irt_query __nacl_irt_query;
+};
+
+struct irt_holder ih;
+
+
 
 /*
  * Scan the auxv for AT_SYSINFO, which is the pointer to the IRT query function.
@@ -693,20 +707,20 @@ static void grok_auxv2(const Elf32_auxv_t *auxv) {
   const Elf32_auxv_t *av;
   for (av = auxv; av->a_type != AT_NULL; ++av) {
     if (av->a_type == AT_SYSINFO) {
-      __nacl_irt_query = (TYPE_nacl_irt_query) av->a_un.a_val;
+      ih.__nacl_irt_query = (TYPE_nacl_irt_query) av->a_un.a_val;
     }
   }
 }
 
-#define DO_QUERY(ident, name)                                                 \
-  do_irt_query(ident, &__libnacl_irt_##name,                                  \
-               sizeof(__libnacl_irt_##name), NULL) /*&nacl_irt_##name)*/
+#define DO_QUERY(ident, ih, name)					\
+  do_irt_query(ident, &ih.__libnacl_irt_##name,                                  \
+               sizeof(ih.__libnacl_irt_##name), NULL) /*&nacl_irt_##name)*/
 
 static void do_irt_query(const char *interface_ident,
                          void *buffer, size_t table_size,
                          const void *fallback) {
-  if (NULL == __nacl_irt_query ||
-      __nacl_irt_query(interface_ident, buffer, table_size) != table_size) {
+  if (NULL == ih.__nacl_irt_query ||
+      ih.__nacl_irt_query(interface_ident, buffer, table_size) != table_size) {
     // start panic!
     //    memcpy(buffer, fallback, table_size);
   }
@@ -720,10 +734,10 @@ static void do_irt_query(const char *interface_ident,
 void __libnacl_irt_init(Elf32_auxv_t *auxv) {
   grok_auxv2(auxv);
 
-  DO_QUERY(NACL_IRT_BASIC_v0_1, basic);
-  DO_QUERY(NACL_IRT_FDIO_v0_1, fdio);
+  DO_QUERY(NACL_IRT_BASIC_v0_1, ih, basic);
+  DO_QUERY(NACL_IRT_FDIO_v0_1, ih, fdio);
   //  DO_QUERY(NACL_IRT_FILENAME_v0_1, filename);
-  DO_QUERY(NACL_IRT_MEMORY_v0_1, memory);
+  DO_QUERY(NACL_IRT_MEMORY_v0_1, ih, memory);
   //  DO_QUERY(NACL_IRT_DYNCODE_v0_1, dyncode);
   //  DO_QUERY(NACL_IRT_TLS_v0_1, tls);
   //  DO_QUERY(NACL_IRT_BLOCKHOOK_v0_1, blockhook);
@@ -773,7 +787,7 @@ void _start(uint32_t *info) {
 }
 
 void _exit(int status) {
-  __libnacl_irt_basic.exit(status);
+  ih.__libnacl_irt_basic.exit(status);
   while (1) *(volatile int *) 0;  /* Crash.  */
 }
 
@@ -808,7 +822,7 @@ int strcmp(const char *s1, const char *s2) {
 
 void *malloc(size_t size) {
   void *res;
-  int ret = __libnacl_irt_memory.mmap(&res, size, PROT_READ | PROT_WRITE, 0, -1, 0);
+  int ret = ih.__libnacl_irt_memory.mmap(&res, size, PROT_READ | PROT_WRITE, 0, -1, 0);
   return res;
 }
 
@@ -826,6 +840,6 @@ size_t strlen(const char *str) {
 
 ssize_t write(int fd, const void *buf, size_t count) {
   ssize_t wrote;
-  __libnacl_irt_fdio.write(fd, buf, count, &wrote);
+  ih.__libnacl_irt_fdio.write(fd, buf, count, &wrote);
   return wrote;
 }
