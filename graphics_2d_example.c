@@ -418,25 +418,15 @@ PP_EXPORT int32_t PPP_InitializeModule(PP_Module module,
 PP_EXPORT void PPP_ShutdownModule() {
 }
 
-static struct PPP_Instance instance_interface = {
-  &Instance_DidCreate,
-  &Instance_DidDestroy,
-  &Instance_DidChangeView,
-  &Instance_DidChangeFocus,
-  &Instance_HandleDocumentLoad
-};
-
-
 PP_EXPORT const void* PPP_GetInterface(const char* interface_name) {
   if (strcmp(interface_name, PPP_INSTANCE_INTERFACE) == 0) {
     struct PPP_Instance* ii = (struct PPP_Instance*)malloc(sizeof(*ii));
     ii->DidCreate = &Instance_DidCreate;
-    //    ii->DidDestroy =  &Instance_DidDestroy;
-    //    ii->DidChangeView = &Instance_DidChangeView;
-    //    ii->DidChangeFocus = &Instance_DidChangeFocus;
-    //    ii->HandleDocumentLoad = &Instance_HandleDocumentLoad;
-    /*return ii;*/
-    return &instance_interface;
+    ii->DidDestroy =  &Instance_DidDestroy;
+    ii->DidChangeView = &Instance_DidChangeView;
+    ii->DidChangeFocus = &Instance_DidChangeFocus;
+    ii->HandleDocumentLoad = &Instance_HandleDocumentLoad;
+    return ii;
   }
   return NULL;
 }
