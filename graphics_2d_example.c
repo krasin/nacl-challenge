@@ -430,7 +430,7 @@ static struct PPP_Instance instance_interface = {
 PP_EXPORT const void* PPP_GetInterface(const char* interface_name) {
   if (strcmp(interface_name, PPP_INSTANCE_INTERFACE) == 0) {
     struct PPP_Instance* ii = (struct PPP_Instance*)malloc(sizeof(*ii));
-    //ii->DidCreate = &Instance_DidCreate;
+    ii->DidCreate = &Instance_DidCreate;
     //    ii->DidDestroy =  &Instance_DidDestroy;
     //    ii->DidChangeView = &Instance_DidChangeView;
     //    ii->DidChangeFocus = &Instance_DidChangeFocus;
@@ -820,9 +820,12 @@ int strcmp(const char *s1, const char *s2) {
   }
 }
 
+#define MAP_PRIVATE      0x02  /* Changes are private.  */
+#define MAP_ANONYMOUS    0x20  /* Don't use a file.  */
+
 static void *malloc(size_t size) {
-  void *res;
-  int ret = ih.__libnacl_irt_memory.mmap(&res, size, PROT_READ | PROT_WRITE, 0, -1, 0);
+  void *res = 0;
+  int ret = ih.__libnacl_irt_memory.mmap(&res, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   return res;
 }
 
