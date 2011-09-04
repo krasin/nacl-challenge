@@ -12,7 +12,7 @@
 #include "ppapi/c/pp_size.h"
 #include "ppapi/c/pp_bool.h"
 
-// #include "ppapi/c/pp_var.h"
+// #include "ppapi/c/pp_var.h
 
 typedef enum {
   PP_VARTYPE_UNDEFINED,
@@ -40,34 +40,6 @@ struct PP_Var {
   union PP_VarValue value;
 };
 PP_COMPILE_ASSERT_STRUCT_SIZE_IN_BYTES(PP_Var, 16);
-
-PP_INLINE struct PP_Var PP_MakeUndefined() {
-  struct PP_Var result = { PP_VARTYPE_UNDEFINED, 0, {PP_FALSE} };
-  return result;
-}
-
-PP_INLINE struct PP_Var PP_MakeNull() {
-  struct PP_Var result = { PP_VARTYPE_NULL, 0, {PP_FALSE} };
-  return result;
-}
-
-PP_INLINE struct PP_Var PP_MakeBool(PP_Bool value) {
-  struct PP_Var result = { PP_VARTYPE_BOOL, 0, {PP_FALSE} };
-  result.value.as_bool = value;
-  return result;
-}
-
-PP_INLINE struct PP_Var PP_MakeInt32(int32_t value) {
-  struct PP_Var result = { PP_VARTYPE_INT32, 0, {PP_FALSE} };
-  result.value.as_int = value;
-  return result;
-}
-
-PP_INLINE struct PP_Var PP_MakeDouble(double value) {
-  struct PP_Var result = { PP_VARTYPE_DOUBLE, 0, {PP_FALSE} };
-  result.value.as_double = value;
-  return result;
-}
 
 // #include "ppapi/c/ppb.h"
 
