@@ -12,7 +12,7 @@
 #include "ppapi/c/pp_size.h"
 #include "ppapi/c/pp_var.h"
 
-//#include "ppapi/c/ppb.h"
+// #include "ppapi/c/ppb.h"
 
 typedef const void* (*PPB_GetInterface)(const char* interface_name);
 
@@ -21,7 +21,7 @@ typedef const void* (*PPB_GetInterface)(const char* interface_name);
 typedef int32_t PP_Resource;
 PP_COMPILE_ASSERT_SIZE_IN_BYTES(PP_Resource, 4);
 
-//#include "ppapi/c/ppb_core.h"
+// #include "ppapi/c/ppb_core.h"
 
 #define PPB_CORE_INTERFACE_1_0 "PPB_Core;1.0"
 #define PPB_CORE_INTERFACE PPB_CORE_INTERFACE_1_0
@@ -37,7 +37,7 @@ struct PPB_Core {
   PP_Bool (*IsMainThread)();
 };
 
-//#include "ppapi/c/pp_point.h"
+// #include "ppapi/c/pp_point.h"
 
 struct PP_Point {
   int32_t x;
@@ -59,7 +59,7 @@ struct PP_Rect {
 };
 PP_COMPILE_ASSERT_STRUCT_SIZE_IN_BYTES(PP_Rect, 16);
 
-//#include "ppapi/c/ppb_graphics_2d.h"
+// #include "ppapi/c/ppb_graphics_2d.h"
 
 #define PPB_GRAPHICS_2D_INTERFACE_0_4 "PPB_Graphics2D;0.4"
 #define PPB_GRAPHICS_2D_INTERFACE_1_0 "PPB_Graphics2D;1.0"
@@ -85,7 +85,7 @@ struct PPB_Graphics2D {
                    struct PP_CompletionCallback callback);
 };
 
-//#include "ppapi/c/ppb_image_data.h"
+// #include "ppapi/c/ppb_image_data.h"
 
 typedef enum {
   PP_IMAGEDATAFORMAT_BGRA_PREMUL,
@@ -117,7 +117,7 @@ struct PPB_ImageData {
   void (*Unmap)(PP_Resource image_data);
 };
 
-//#include "ppapi/c/ppb_instance.h"
+// #include "ppapi/c/ppb_instance.h"
 
 #define PPB_INSTANCE_INTERFACE_0_5 "PPB_Instance;0.5"
 #define PPB_INSTANCE_INTERFACE_1_0 "PPB_Instance;1.0"
@@ -129,7 +129,7 @@ struct PPB_Instance {
 };
 
 
-//#include "ppapi/c/ppp.h"
+// #include "ppapi/c/ppp.h"
 
 #define PP_EXPORT __attribute__ ((visibility("default")))
 
@@ -138,7 +138,7 @@ PP_EXPORT int32_t PPP_InitializeModule(PP_Module module,
 PP_EXPORT void PPP_ShutdownModule();
 PP_EXPORT const void* PPP_GetInterface(const char* interface_name);
 
-//#include "ppapi/c/ppp_instance.h"
+// #include "ppapi/c/ppp_instance.h"
 
 #define PPP_INSTANCE_INTERFACE_1_0 "PPP_Instance;1.0"
 #define PPP_INSTANCE_INTERFACE PPP_INSTANCE_INTERFACE_1_0
