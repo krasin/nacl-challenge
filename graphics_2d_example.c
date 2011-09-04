@@ -7,9 +7,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/mman.h>
 
 #include <stdint.h>
 #include <malloc.h>
+
+char** environ;
 
 // #include "ppapi/c/pp_macros.h"
 
@@ -342,7 +345,7 @@ void Instance_DidDestroy(PP_Instance instance) {
   /* Find the matching item in the linked list, delete it, and patch the
    * links.
    */
-  struct InstanceInfo** prev_ptr = &all_instances;
+  /*  struct InstanceInfo** prev_ptr = &all_instances;
   struct InstanceInfo* cur = all_instances;
   while (cur) {
     if (instance == cur->pp_instance) {
@@ -351,7 +354,7 @@ void Instance_DidDestroy(PP_Instance instance) {
       return;
     }
     prev_ptr = &cur->next;
-  }
+    }*/
 }
 
 void Instance_DidChangeView(PP_Instance pp_instance,
@@ -424,10 +427,7 @@ struct PP_StartFunctions {
   const void *(*PPP_GetInterface)(const char *interface_name);
 };
 
-static void fatal_error(const char *message) {
-  write(2, message, strlen(message));
-  _exit(127);
-}
+static void fatal_error(const char *message);
 
 /* Define 32-bit specific types */
 typedef uint32_t    Elf32_Addr;   /* alignment 4 */
@@ -547,6 +547,269 @@ static const struct PP_StartFunctions ppapi_app_start_callbacks = {
   PPP_GetInterface
 };
 
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv, char **envp) {
   return PpapiPluginStart(&ppapi_app_start_callbacks);
+}
+
+/*
+ * The true entry point for untrusted code is called with the normal C ABI,
+ * taking one argument.  This is a pointer to stack space containing these
+ * words:
+ *      [0]             cleanup function pointer (always NULL in actual startup)
+ *      [1]             envc, count of envp[] pointers
+ *      [2]             argc, count of argv[] pointers
+ *      [3]             argv[0..argc] pointers, argv[argc] being NULL
+ *      [3+argc]        envp[0..envc] pointers, envp[envc] being NULL
+ *      [3+argc+envc]   auxv[] pairs
+ */
+
+enum NaClStartupInfoIndex {
+  NACL_STARTUP_FINI,  /* Cleanup function pointer for dynamic linking.  */
+  NACL_STARTUP_ENVC,  /* Count of envp[] pointers.  */
+  NACL_STARTUP_ARGC,  /* Count of argv[] pointers.  */
+  NACL_STARTUP_ARGV   /* argv[0] pointer.  */
+};
+
+void __libc_init_array(void) __attribute__((weak));
+void __libc_fini_array(void) __attribute__((weak));
+void _init(void) __attribute__((weak));
+void _fini(void) __attribute__((weak));
+
+//void __pthread_initialize(void);
+//void __pthread_shutdown(void);
+
+/*
+ * Return the dynamic linker finalizer function.
+ */
+static inline __attribute__((unused))
+void (*nacl_startup_fini(const uint32_t info[]))(void) {
+  return (void (*)(void)) info[NACL_STARTUP_FINI];
+}
+
+/*
+ * Return the count of argument strings.
+ */
+static inline __attribute__((unused))
+int nacl_startup_argc(const uint32_t info[]) {
+  return info[NACL_STARTUP_ARGC];
+}
+
+/*
+ * Return the vector of argument strings.
+ */
+static inline __attribute__((unused))
+char **nacl_startup_argv(const uint32_t info[]) {
+  return (char **) &info[NACL_STARTUP_ARGV];
+}
+
+/*
+ * Return the count of environment strings.
+ */
+static inline __attribute__((unused))
+int nacl_startup_envc(const uint32_t info[]) {
+  return info[NACL_STARTUP_ENVC];
+}
+
+/*
+ * Return the vector of environment strings.
+ */
+static inline __attribute__((unused))
+char **nacl_startup_envp(const uint32_t info[]) {
+  return &nacl_startup_argv(info)[nacl_startup_argc(info) + 1];
+}
+
+/*
+ * Return the vector of auxiliary data items.
+ */
+static inline __attribute__((unused))
+Elf32_auxv_t *nacl_startup_auxv(const uint32_t info[]) {
+  char **envend = &nacl_startup_envp(info)[nacl_startup_envc(info) + 1];
+  return (Elf32_auxv_t *) envend;
+}
+
+#define NACL_IRT_BASIC_v0_1     "nacl-irt-basic-0.1"
+struct nacl_irt_basic {
+  void (*exit)(int status);
+  int (*gettod)(struct timeval *tv);
+  int (*clock)(clock_t *ticks);
+  int (*nanosleep)(const struct timespec *req, struct timespec *rem);
+  int (*sched_yield)(void);
+  int (*sysconf)(int name, int *value);
+};
+
+struct dirent;
+struct stat;
+
+#define NACL_IRT_FDIO_v0_1      "nacl-irt-fdio-0.1"
+struct nacl_irt_fdio {
+  int (*close)(int fd);
+  int (*dup)(int fd, int *newfd);
+  int (*dup2)(int fd, int newfd);
+  int (*read)(int fd, void *buf, size_t count, size_t *nread);
+  int (*write)(int fd, const void *buf, size_t count, size_t *nwrote);
+  int (*seek)(int fd, off_t offset, int whence, off_t *new_offset);
+  int (*fstat)(int fd, struct stat *);
+  int (*getdents)(int fd, struct dirent *, size_t count, size_t *nread);
+};
+
+#define NACL_IRT_MEMORY_v0_1    "nacl-irt-memory-0.1"
+struct nacl_irt_memory {
+  int (*sysbrk)(void **newbrk);
+  int (*mmap)(void **addr, size_t len, int prot, int flags, int fd, off_t off);
+  int (*munmap)(void *addr, size_t len);
+};
+
+struct nacl_irt_basic __libnacl_irt_basic;
+struct nacl_irt_fdio __libnacl_irt_fdio;
+//struct nacl_irt_filename __libnacl_irt_filename;
+struct nacl_irt_memory __libnacl_irt_memory;
+//struct nacl_irt_dyncode __libnacl_irt_dyncode;
+//struct nacl_irt_tls __libnacl_irt_tls;
+//struct nacl_irt_blockhook __libnacl_irt_blockhook;
+
+TYPE_nacl_irt_query __nacl_irt_query;
+
+/*
+ * Scan the auxv for AT_SYSINFO, which is the pointer to the IRT query function.
+ * Stash that for later use.
+ */
+static void grok_auxv2(const Elf32_auxv_t *auxv) {
+  const Elf32_auxv_t *av;
+  for (av = auxv; av->a_type != AT_NULL; ++av) {
+    if (av->a_type == AT_SYSINFO) {
+      __nacl_irt_query = (TYPE_nacl_irt_query) av->a_un.a_val;
+    }
+  }
+}
+
+#define DO_QUERY(ident, name)                                                 \
+  do_irt_query(ident, &__libnacl_irt_##name,                                  \
+               sizeof(__libnacl_irt_##name), NULL) /*&nacl_irt_##name)*/
+
+static void do_irt_query(const char *interface_ident,
+                         void *buffer, size_t table_size,
+                         const void *fallback) {
+  if (NULL == __nacl_irt_query ||
+      __nacl_irt_query(interface_ident, buffer, table_size) != table_size) {
+    // start panic!
+    //    memcpy(buffer, fallback, table_size);
+  }
+}
+
+
+/*
+ * Initialize all our IRT function tables using the query function.
+ * The query function's address is passed via AT_SYSINFO in auxv.
+ */
+void __libnacl_irt_init(Elf32_auxv_t *auxv) {
+  grok_auxv2(auxv);
+
+  DO_QUERY(NACL_IRT_BASIC_v0_1, basic);
+  DO_QUERY(NACL_IRT_FDIO_v0_1, fdio);
+  //  DO_QUERY(NACL_IRT_FILENAME_v0_1, filename);
+  DO_QUERY(NACL_IRT_MEMORY_v0_1, memory);
+  //  DO_QUERY(NACL_IRT_DYNCODE_v0_1, dyncode);
+  //  DO_QUERY(NACL_IRT_TLS_v0_1, tls);
+  //  DO_QUERY(NACL_IRT_BLOCKHOOK_v0_1, blockhook);
+}
+
+/*
+ * This is the true entry point for untrusted code.
+ * See nacl_startup.h for the layout at the argument pointer.
+ */
+void _start(uint32_t *info) {
+  void (*fini)(void) = nacl_startup_fini(info);
+  int argc = nacl_startup_argc(info);
+  char **argv = nacl_startup_argv(info);
+  char **envp = nacl_startup_envp(info);
+  Elf32_auxv_t *auxv = nacl_startup_auxv(info);
+
+  environ = envp;
+
+  __libnacl_irt_init(auxv);
+  char * msg = "_start, 50\n";
+  write(2, msg, strlen(msg));
+
+  /*
+   * If we were started by a dynamic linker, then it passed its finalizer
+   * function here.  For static linking, this is always NULL.
+   */
+  //  if (fini != NULL)
+  //    atexit(fini);
+
+  //  if (&__libc_fini_array)
+  //    atexit(&__libc_fini_array);
+  //  else
+  //    atexit(&_fini);
+
+  //  __pthread_initialize();
+  //  atexit(&__pthread_shutdown);
+
+  if (&__libc_init_array)
+    __libc_init_array();
+  else
+    _init();
+
+  _exit(main(argc, argv, envp));
+
+  /*NOTREACHED*/
+  while (1) *(volatile int *) 0;  /* Crash.  */
+}
+
+void _exit(int status) {
+  __libnacl_irt_basic.exit(status);
+  while (1) *(volatile int *) 0;  /* Crash.  */
+}
+
+static void fatal_error(const char *message) {
+  // TODO: implement write. It is important to know the reason to fail.
+  write(2, message, strlen(message));
+  _exit(127);
+}
+
+int strcmp(const char *s1, const char *s2) {
+  while (*s1 != 0 && *s2 != 0) {
+    if (*s1 != *s2) {
+      if (*s1 > *s2) {
+        return 1;
+      } else {
+	return -1;
+      }
+    }
+    s1++;
+    s2++;
+  }
+  if (*s1 == 0 && *s2 == 0) {
+    return 0;
+  }
+  if (*s1 == 0) {
+    return -1;
+  }
+  if (*s2 == 0) {
+    return 1;
+  }
+}
+
+void *malloc(size_t size) {
+  void *res;
+  int ret = __libnacl_irt_memory.mmap(&res, size, PROT_READ | PROT_WRITE, 0, -1, 0);
+  return res;
+}
+
+size_t strlen(const char *str) {
+  size_t l = 0;
+  if (str == NULL) {
+    return 0;
+  }
+  while (*str != 0) {
+    str++;
+    l++;
+  }
+  return l;
+}
+
+ssize_t write(int fd, const void *buf, size_t count) {
+  ssize_t wrote;
+  __libnacl_irt_fdio.write(fd, buf, count, &wrote);
+  return wrote;
 }
