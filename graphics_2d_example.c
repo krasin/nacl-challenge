@@ -14,17 +14,10 @@
 
 // #include "ppapi/c/pp_var.h
 
-union PP_VarValue {
-  PP_Bool as_bool;
-  int32_t as_int;
-  double as_double;
-  int64_t as_id;
-};
-
 struct PP_Var {
   int32_t type;
   int32_t padding;
-  union PP_VarValue value;
+  int64_t value;
 };
 PP_COMPILE_ASSERT_STRUCT_SIZE_IN_BYTES(PP_Var, 16);
 
