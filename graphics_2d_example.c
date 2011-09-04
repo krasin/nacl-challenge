@@ -15,7 +15,6 @@
 //#include "ppapi/c/ppb_core.h"
 
 #include "ppapi/c/pp_resource.h"
-#include "ppapi/c/pp_time.h"
 
 #define PPB_CORE_INTERFACE_1_0 "PPB_Core;1.0"
 #define PPB_CORE_INTERFACE PPB_CORE_INTERFACE_1_0
@@ -23,8 +22,8 @@
 struct PPB_Core {
   void (*AddRefResource)(PP_Resource resource);
   void (*ReleaseResource)(PP_Resource resource);
-  PP_Time (*GetTime)();
-  PP_TimeTicks (*GetTimeTicks)();
+  double (*GetTime)();
+  double (*GetTimeTicks)();
   void (*CallOnMainThread)(int32_t delay_in_milliseconds,
                            struct PP_CompletionCallback callback,
                            int32_t result);
