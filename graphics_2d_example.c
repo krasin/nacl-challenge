@@ -3,6 +3,10 @@
  * found in the LICENSE file.
  */
 
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include <stdint.h>
 #include <malloc.h>
 
@@ -419,7 +423,101 @@ struct PP_StartFunctions {
   const void *(*PPP_GetInterface)(const char *interface_name);
 };
 
-int PpapiPluginStart(const struct PP_StartFunctions *funcs);
+static void fatal_error(const char *message) {
+  write(2, message, strlen(message));
+  _exit(127);
+}
+
+/* Define 32-bit specific types */
+typedef uint32_t    Elf32_Addr;   /* alignment 4 */
+typedef uint16_t    Elf32_Half;   /* alignment 2 */
+typedef uint32_t    Elf32_Off;    /* alignment 4 */
+typedef int32_t     Elf32_Sword;  /* alignment 4 */
+typedef uint32_t    Elf32_Word;   /* alignment 4 */
+
+/*
+ * The auxiliary vector is passed on the stack between ELF loaders,
+ * dynamic linkers, and program startup code.  The gratuitous union
+ * is the historical standard API, though it has no purpose today. */
+typedef struct {
+  Elf32_Word a_type;            /* Entry type */
+  union {
+    Elf32_Word a_val;         /* Integer value */
+  } a_un;
+} Elf32_auxv_t;
+
+/* Keys for auxiliary vector (auxv). */
+#define AT_NULL         0   /* Terminating item in auxv array */
+#define AT_ENTRY        9   /* Entry point of the executable */
+#define AT_SYSINFO      32  /* System call entry point */
+
+struct PP_ThreadFunctions {
+  /*
+   * This is a cut-down version of pthread_create()/pthread_join().
+   * We omit thread creation attributes and the thread's return value.
+   *
+   * We use uintptr_t as the thread ID type because pthread_t is not
+   * part of the stable ABI; a user thread library might choose an
+   * arbitrary size for its own pthread_t.   */
+  int (*thread_create)(uintptr_t *tid,
+                       void (*func)(void *thread_argument),
+                       void *thread_argument);
+  int (*thread_join)(uintptr_t tid);
+};
+
+
+#define NACL_IRT_PPAPIHOOK_v0_1 "nacl-irt-ppapihook-0.1"
+struct nacl_irt_ppapihook {
+  int (*ppapi_start)(const struct PP_StartFunctions *);
+  void (*ppapi_register_thread_creator)(const struct PP_ThreadFunctions *);
+};
+
+/*                                                                                                                                                                                                                                  
+ * TODO(mcgrathr): This extremely stupid function should not exist.
+ * If the startup calling sequence were sane, this would be done
+ * someplace that has the initial pointer locally rather than stealing
+ * it from environ.
+ * See http://code.google.com/p/nativeclient/issues/detail?id=651 */
+static Elf32_auxv_t *find_auxv(void) {
+  /*
+   * This presumes environ has its startup-time value on the stack.   */
+  char **ep = environ;
+  while (*ep != NULL)
+    ++ep;
+  return (void *) (ep + 1);
+}
+
+typedef size_t (*TYPE_nacl_irt_query)(const char *interface_ident,
+                                      void *table, size_t tablesize);
+
+/*                                                                                                                                                                                                                                  
+ * Scan the auxv for AT_SYSINFO, which is the pointer to the IRT query function.
+ */
+static TYPE_nacl_irt_query grok_auxv(const Elf32_auxv_t *auxv) {
+  const Elf32_auxv_t *av;
+  for (av = auxv; av->a_type != AT_NULL; ++av) {
+    if (av->a_type == AT_SYSINFO)
+      return (TYPE_nacl_irt_query) av->a_un.a_val;
+  }
+  return NULL;
+}
+
+static int PpapiPluginStart(const struct PP_StartFunctions *funcs) {
+  TYPE_nacl_irt_query query_func = grok_auxv(find_auxv());
+
+  if (NULL == query_func)
+    fatal_error("PpapiPluginStart: No AT_SYSINFO item found in auxv, "
+                "so cannot start PPAPI.  Is the IRT library not present?\n");
+
+  struct nacl_irt_ppapihook hooks;
+  if (sizeof(hooks) != query_func(NACL_IRT_PPAPIHOOK_v0_1,
+                                  &hooks, sizeof(hooks)))
+    fatal_error("PpapiPluginStart: PPAPI hooks not found\n");
+
+  __nacl_register_thread_creator(&hooks);
+
+  return hooks.ppapi_start(funcs);
+}
 
 static const struct PP_StartFunctions ppapi_app_start_callbacks = {
   PPP_InitializeModule,
