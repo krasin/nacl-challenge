@@ -17,7 +17,9 @@
 #include "ppapi/c/ppb_image_data.h"
 #include "ppapi/c/ppb_instance.h"
 //#include "ppapi/c/ppp.h"
-//#include "ppapi/c/ppp_instance.h"
+
+#ifndef PPAPI_C_PPP_H_
+#define PPAPI_C_PPP_H_
 
 #include "ppapi/c/pp_macros.h"
 
@@ -138,9 +140,10 @@ PP_EXPORT const void* PPP_GetInterface(const char* interface_name);
 }  /* extern "C" */
 #endif
 
+#endif  /* PPAPI_C_PPP_H_ */
 
 
-
+//#include "ppapi/c/ppp_instance.h"
 
 #define PPP_INSTANCE_INTERFACE_1_0 "PPP_Instance;1.0"
 #define PPP_INSTANCE_INTERFACE PPP_INSTANCE_INTERFACE_1_0
