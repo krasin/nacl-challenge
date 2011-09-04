@@ -14,19 +14,6 @@
 
 // #include "ppapi/c/pp_var.h
 
-typedef enum {
-  PP_VARTYPE_UNDEFINED,
-  PP_VARTYPE_NULL,
-  PP_VARTYPE_BOOL,
-  PP_VARTYPE_INT32,
-  PP_VARTYPE_DOUBLE,
-  PP_VARTYPE_STRING,
-  PP_VARTYPE_OBJECT,
-  PP_VARTYPE_ARRAY,
-  PP_VARTYPE_DICTIONARY
-} PP_VarType;
-PP_COMPILE_ASSERT_SIZE_IN_BYTES(PP_VarType, 4);
-
 union PP_VarValue {
   PP_Bool as_bool;
   int32_t as_int;
@@ -35,7 +22,7 @@ union PP_VarValue {
 };
 
 struct PP_Var {
-  PP_VarType type;
+  int32_t type;
   int32_t padding;
   union PP_VarValue value;
 };
