@@ -3,16 +3,14 @@
  * found in the LICENSE file.
  */
 
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/mman.h>
 
-#include <stdint.h>
-#include <malloc.h>
-
 char** environ;
+void *malloc(size_t size);
+size_t strlen(const char *str);
+int strcmp(const char *s1, const char *s2);
 
 // #include "ppapi/c/pp_macros.h"
 
