@@ -503,7 +503,7 @@ static TYPE_nacl_irt_query grok_auxv(const Elf32_auxv_t *auxv) {
   return NULL;
 }
 
-static int thread_create(uintptr_t *tid,
+/*static int thread_create(uintptr_t *tid,
                          void (*func)(void *thread_argument),
                          void *thread_argument) {
   return pthread_create((pthread_t *) tid, NULL,
@@ -518,10 +518,10 @@ static int thread_join(uintptr_t tid) {
 const static struct PP_ThreadFunctions thread_funcs = {
   thread_create,
   thread_join
-};
+  };*/
 
 static void __nacl_register_thread_creator(const struct nacl_irt_ppapihook *hooks) {
-  hooks->ppapi_register_thread_creator(&thread_funcs);
+  //  hooks->ppapi_register_thread_creator(&thread_funcs);
 }
 
 static int PpapiPluginStart(const struct PP_StartFunctions *funcs) {
