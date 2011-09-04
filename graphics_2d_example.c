@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include <stdint.h>
 #include <malloc.h>
@@ -500,6 +501,27 @@ static TYPE_nacl_irt_query grok_auxv(const Elf32_auxv_t *auxv) {
       return (TYPE_nacl_irt_query) av->a_un.a_val;
   }
   return NULL;
+}
+
+static int thread_create(uintptr_t *tid,
+                         void (*func)(void *thread_argument),
+                         void *thread_argument) {
+  return pthread_create((pthread_t *) tid, NULL,
+			(void *(*)(void *thread_argument)) func,
+			thread_argument);
+}
+
+static int thread_join(uintptr_t tid) {
+  return pthread_join((pthread_t) tid, NULL);
+}
+
+const static struct PP_ThreadFunctions thread_funcs = {
+  thread_create,
+  thread_join
+};
+
+static void __nacl_register_thread_creator(const struct nacl_irt_ppapihook *hooks) {
+  hooks->ppapi_register_thread_creator(&thread_funcs);
 }
 
 static int PpapiPluginStart(const struct PP_StartFunctions *funcs) {
