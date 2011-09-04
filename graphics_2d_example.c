@@ -12,9 +12,42 @@
 #include "ppapi/c/pp_size.h"
 #include "ppapi/c/pp_var.h"
 #include "ppapi/c/ppb.h"
-//#include "ppapi/c/ppb_core.h"
 
-#include "ppapi/c/pp_resource.h"
+// #include "ppapi/c/pp_resource.h"
+
+#include "ppapi/c/pp_macros.h"
+#include "ppapi/c/pp_stdint.h"
+
+/**
+ * @file
+ * This file defines the <code>PP_Resource</code> type which represents data
+ * associated with the module.
+ */
+
+
+/**
+ * @addtogroup Typedefs
+ * @{
+ */
+/**
+ * This typdef represents an opaque handle assigned by the browser to the
+ * resource. The handle is guaranteed never to be 0 for a valid resource, so a
+ * module can initialize it to 0 to indicate a "NULL handle." Some interfaces
+ * may return a NULL resource to indicate failure.
+ *
+ * While a Var represents something callable to JS or from the module to
+ * the DOM, a resource has no meaning or visibility outside of the module
+ * interface.
+ *
+ * Resources are reference counted. Use <code>AddRefResource()</code>
+ * and <code>ReleaseResource()</code> in <code>ppb_core.h</code> to manage the
+ * reference count of a resource. The data will be automatically destroyed when
+ * the internal reference count reaches 0.
+ */
+typedef int32_t PP_Resource;
+PP_COMPILE_ASSERT_SIZE_IN_BYTES(PP_Resource, 4);
+
+//#include "ppapi/c/ppb_core.h"
 
 #define PPB_CORE_INTERFACE_1_0 "PPB_Core;1.0"
 #define PPB_CORE_INTERFACE PPB_CORE_INTERFACE_1_0
