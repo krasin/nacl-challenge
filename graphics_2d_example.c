@@ -18,20 +18,6 @@
 #include "ppapi/c/ppb_instance.h"
 //#include "ppapi/c/ppp.h"
 
-#include "ppapi/c/pp_macros.h"
-
-/**
- * @file
- * This file defines three functions that your module must
- * implement to interact with the browser.
- */
-
-
-
-#include "ppapi/c/pp_module.h"
-#include "ppapi/c/pp_stdint.h"
-#include "ppapi/c/ppb.h"
-
 #define PP_EXPORT __attribute__ ((visibility("default")))
 
 PP_EXPORT int32_t PPP_InitializeModule(PP_Module module,
