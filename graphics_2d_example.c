@@ -3,14 +3,29 @@
  * found in the LICENSE file.
  */
 
-#include <unistd.h>
-#include <pthread.h>
-#include <sys/mman.h>
+#define PROT_READ        0x1
+#define PROT_WRITE       0x2
+
+#define NULL 0
+
+typedef short int16_t;
+typedef unsigned short uint16_t;
+typedef unsigned long size_t;
+typedef long ssize_t;
+typedef int int32_t;
+typedef unsigned int uint32_t;
+typedef long long int64_t;
+typedef unsigned long long uint64_t;
+typedef unsigned int* uintptr_t;
+typedef long int  clock_t;
+typedef long int off_t;
 
 char** environ;
+ssize_t write(int fd, const void *buf, size_t count);
 void *malloc(size_t size);
 size_t strlen(const char *str);
 int strcmp(const char *s1, const char *s2);
+void _exit(int status);
 
 // #include "ppapi/c/pp_macros.h"
 
@@ -624,6 +639,9 @@ Elf32_auxv_t *nacl_startup_auxv(const uint32_t info[]) {
   char **envend = &nacl_startup_envp(info)[nacl_startup_envc(info) + 1];
   return (Elf32_auxv_t *) envend;
 }
+
+struct timeval;
+struct timespec;
 
 #define NACL_IRT_BASIC_v0_1     "nacl-irt-basic-0.1"
 struct nacl_irt_basic {
