@@ -412,8 +412,21 @@ PP_EXPORT const void* PPP_GetInterface(const char* interface_name) {
   return NULL;
 }
 
-int PpapiPluginMain();
+struct PP_StartFunctions {
+  int32_t (*PPP_InitializeModule)(PP_Module module_id,
+                                  PPB_GetInterface get_browser_interface);
+  void (*PPP_ShutdownModule)();
+  const void *(*PPP_GetInterface)(const char *interface_name);
+};
+
+int PpapiPluginStart(const struct PP_StartFunctions *funcs);
+
+static const struct PP_StartFunctions ppapi_app_start_callbacks = {
+  PPP_InitializeModule,
+  PPP_ShutdownModule,
+  PPP_GetInterface
+};
 
 int main(int argc, char* argv[]) {
-  return PpapiPluginMain();
+  return PpapiPluginStart(&ppapi_app_start_callbacks);
 }
