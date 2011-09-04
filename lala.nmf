@@ -1,5 +1,5 @@
 {
   "program": {
-    "x86-64": {"url": "lala.nexe"}
+    "x86-64": {"url": "x86_64-opt-demo.nexe"}
   }
 }
