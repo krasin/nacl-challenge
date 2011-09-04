@@ -11,39 +11,9 @@
 #include "ppapi/c/pp_module.h"
 #include "ppapi/c/pp_size.h"
 #include "ppapi/c/pp_var.h"
+
 //#include "ppapi/c/ppb.h"
 
-#include "ppapi/c/pp_macros.h"
-#include "ppapi/c/pp_stdint.h"
-
-/**
- * @file
- * This file defines a function pointer type for the
- * <code>PPB_GetInterface</code> function.
- */
-
-
-/**
- * @addtogroup Typedefs
- * @{
- */
-/**
- * This function pointer type defines the signature for the
- * <code>PPB_GetInterface</code> function. A generic
- * <code>PPB_GetInterface</code> pointer is passed to
- * <code>PPP_InitializedModule</code> when your module is loaded. You can use
- * this pointer to request a pointer to a specific browser interface. Browser
- * interface names are ASCII strings and are generally defined in the header
- * file for the interface, such as <code>PPB_AUDIO_INTERFACE</code> found in
- * <code>ppb.audio.h</code> or
- * <code>PPB_GRAPHICS_2D_INTERFACE</code> in <code>ppb_graphics_2d.h</code>.
- * Click
- * <a href="/chrome/nativeclient/docs/reference/pepperc/
- * globals_defs.html" title="macros">here</a> for a complete list of interface
- * names.
- *
- * This value will be NULL if the interface is not supported on the browser.
- */
 typedef const void* (*PPB_GetInterface)(const char* interface_name);
 
 // #include "ppapi/c/pp_resource.h"
