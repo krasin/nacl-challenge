@@ -411,3 +411,9 @@ PP_EXPORT const void* PPP_GetInterface(const char* interface_name) {
     return &instance_interface;
   return NULL;
 }
+
+int PpapiPluginMain();
+
+int main(int argc, char* argv[]) {
+  return PpapiPluginMain();
+}
