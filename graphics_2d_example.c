@@ -258,14 +258,60 @@ struct PPP_Instance {
 
 typedef struct PPP_Instance PPP_Instance_1_0;
 
+#define NACL_IRT_BASIC_v0_1     "nacl-irt-basic-0.1"
+struct nacl_irt_basic {
+  void (*exit)(int status);
+  int (*gettod)(struct timeval *tv);
+  int (*clock)(clock_t *ticks);
+  int (*nanosleep)(const struct timespec *req, struct timespec *rem);
+  int (*sched_yield)(void);
+  int (*sysconf)(int name, int *value);
+};
+
+#define NACL_IRT_FDIO_v0_1      "nacl-irt-fdio-0.1"
+struct nacl_irt_fdio {
+  int (*close)(int fd);
+  int (*dup)(int fd, int *newfd);
+  int (*dup2)(int fd, int newfd);
+  int (*read)(int fd, void *buf, size_t count, size_t *nread);
+  int (*write)(int fd, const void *buf, size_t count, size_t *nwrote);
+  int (*seek)(int fd, off_t offset, int whence, off_t *new_offset);
+  int (*fstat)(int fd, struct stat *);
+  int (*getdents)(int fd, struct dirent *, size_t count, size_t *nread);
+};
+
+#define NACL_IRT_MEMORY_v0_1    "nacl-irt-memory-0.1"
+struct nacl_irt_memory {
+  int (*sysbrk)(void **newbrk);
+  int (*mmap)(void **addr, size_t len, int prot, int flags, int fd, off_t off);
+  int (*munmap)(void *addr, size_t len);
+};
+
+typedef size_t (*TYPE_nacl_irt_query)(const char *interface_ident,
+                                      void *table, size_t tablesize);
+
 /**************************************************** END OF HEADERS ***************************************/
 
-PPB_GetInterface g_get_browser_interface = NULL;
+struct bss_killer {
+  TYPE_nacl_irt_query __nacl_irt_query;
+  struct nacl_irt_basic __libnacl_irt_basic;
+  struct nacl_irt_fdio __libnacl_irt_fdio;
+//struct nacl_irt_filename __libnacl_irt_filename;
+  struct nacl_irt_memory __libnacl_irt_memory;
+//struct nacl_irt_dyncode __libnacl_irt_dyncode;
+//struct nacl_irt_tls __libnacl_irt_tls;
+//struct nacl_irt_blockhook __libnacl_irt_blockhook;
 
-const struct PPB_Core* g_core_interface;
-const struct PPB_Graphics2D* g_graphics_2d_interface;
-const struct PPB_ImageData* g_image_data_interface;
-const struct PPB_Instance* g_instance_interface;
+  PPB_GetInterface g_get_browser_interface;
+
+  const struct PPB_Core* g_core_interface;
+  const struct PPB_Graphics2D* g_graphics_2d_interface;
+  const struct PPB_ImageData* g_image_data_interface;
+  const struct PPB_Instance* g_instance_interface;
+};
+
+struct bss_killer ih;
+
 
 /* PPP_Instance implementation -----------------------------------------------*/
 
@@ -284,12 +330,12 @@ PP_Resource MakeAndBindGraphics2D(PP_Instance instance,
                                   const struct PP_Size* size) {
   PP_Resource graphics;
 
-  graphics = g_graphics_2d_interface->Create(instance, size, PP_FALSE);
+  graphics = ih.g_graphics_2d_interface->Create(instance, size, PP_FALSE);
   if (!graphics)
     return 0;
 
-  if (!g_instance_interface->BindGraphics(instance, graphics)) {
-    g_core_interface->ReleaseResource(graphics);
+  if (!ih.g_instance_interface->BindGraphics(instance, graphics)) {
+    ih.g_core_interface->ReleaseResource(graphics);
     return 0;
   }
   return graphics;
@@ -306,16 +352,16 @@ void Repaint(struct InstanceInfo* instance, const struct PP_Size* size) {
   int num_words, i;
 
   /* Create image data to paint into. */
-  image = g_image_data_interface->Create(
+  image = ih.g_image_data_interface->Create(
       instance->pp_instance, PP_IMAGEDATAFORMAT_BGRA_PREMUL, size, PP_TRUE);
   if (!image)
     return;
-  g_image_data_interface->Describe(image, &image_desc);
+  ih.g_image_data_interface->Describe(image, &image_desc);
 
   /* Fill the image with blue. */
-  image_data = (uint32_t*)g_image_data_interface->Map(image);
+  image_data = (uint32_t*)ih.g_image_data_interface->Map(image);
   if (!image_data) {
-    g_core_interface->ReleaseResource(image);
+    ih.g_core_interface->ReleaseResource(image);
     return;
   }
   num_words = image_desc.stride * size->height / 4;
@@ -325,16 +371,16 @@ void Repaint(struct InstanceInfo* instance, const struct PP_Size* size) {
   /* Create the graphics 2d and paint the image to it. */
   graphics = MakeAndBindGraphics2D(instance->pp_instance, size);
   if (!graphics) {
-    g_core_interface->ReleaseResource(image);
+    ih.g_core_interface->ReleaseResource(image);
     return;
   }
 
-  g_graphics_2d_interface->ReplaceContents(graphics, image);
-  g_graphics_2d_interface->Flush(graphics,
+  ih.g_graphics_2d_interface->ReplaceContents(graphics, image);
+  ih.g_graphics_2d_interface->Flush(graphics,
       PP_MakeCompletionCallback(&FlushCompletionCallback, NULL));
 
-  g_core_interface->ReleaseResource(graphics);
-  g_core_interface->ReleaseResource(image);
+  ih.g_core_interface->ReleaseResource(graphics);
+  ih.g_core_interface->ReleaseResource(image);
 }
 
 /** Returns the info for the given instance, or NULL if it's not found. */
@@ -395,18 +441,18 @@ PP_Bool Instance_HandleDocumentLoad(PP_Instance pp_instance,
 
 PP_EXPORT int32_t PPP_InitializeModule(PP_Module module,
                                        PPB_GetInterface get_browser_interface) {
-  g_get_browser_interface = get_browser_interface;
+  ih.g_get_browser_interface = get_browser_interface;
 
-  g_core_interface = (const struct PPB_Core*)
+  ih.g_core_interface = (const struct PPB_Core*)
       get_browser_interface(PPB_CORE_INTERFACE);
-  g_instance_interface = (const struct PPB_Instance*)
+  ih.g_instance_interface = (const struct PPB_Instance*)
       get_browser_interface(PPB_INSTANCE_INTERFACE);
-  g_image_data_interface = (const struct PPB_ImageData*)
+  ih.g_image_data_interface = (const struct PPB_ImageData*)
       get_browser_interface(PPB_IMAGEDATA_INTERFACE);
-  g_graphics_2d_interface = (const struct PPB_Graphics2D*)
+  ih.g_graphics_2d_interface = (const struct PPB_Graphics2D*)
       get_browser_interface(PPB_GRAPHICS_2D_INTERFACE);
-  if (!g_core_interface || !g_instance_interface || !g_image_data_interface ||
-      !g_graphics_2d_interface)
+  if (!ih.g_core_interface || !ih.g_instance_interface || !ih.g_image_data_interface ||
+      !ih.g_graphics_2d_interface)
     return -1;
 
   return PP_OK;
@@ -474,10 +520,6 @@ struct nacl_irt_ppapihook {
   void (*ppapi_register_thread_creator)(const struct PP_ThreadFunctions *);
 };
 
-
-typedef size_t (*TYPE_nacl_irt_query)(const char *interface_ident,
-                                      void *table, size_t tablesize);
-
 static int PpapiPluginStart(TYPE_nacl_irt_query query_func) {
   struct PP_StartFunctions funcs = {
     PPP_InitializeModule,
@@ -518,51 +560,6 @@ Elf32_auxv_t *nacl_startup_auxv(const uint32_t info[]) {
   char ** argv = (char**) &info[NACL_STARTUP_ARGV];
   return (Elf32_auxv_t *) &argv[info[NACL_STARTUP_ENVC] + info[NACL_STARTUP_ARGC] + 2];
 }
-
-#define NACL_IRT_BASIC_v0_1     "nacl-irt-basic-0.1"
-struct nacl_irt_basic {
-  void (*exit)(int status);
-  int (*gettod)(struct timeval *tv);
-  int (*clock)(clock_t *ticks);
-  int (*nanosleep)(const struct timespec *req, struct timespec *rem);
-  int (*sched_yield)(void);
-  int (*sysconf)(int name, int *value);
-};
-
-#define NACL_IRT_FDIO_v0_1      "nacl-irt-fdio-0.1"
-struct nacl_irt_fdio {
-  int (*close)(int fd);
-  int (*dup)(int fd, int *newfd);
-  int (*dup2)(int fd, int newfd);
-  int (*read)(int fd, void *buf, size_t count, size_t *nread);
-  int (*write)(int fd, const void *buf, size_t count, size_t *nwrote);
-  int (*seek)(int fd, off_t offset, int whence, off_t *new_offset);
-  int (*fstat)(int fd, struct stat *);
-  int (*getdents)(int fd, struct dirent *, size_t count, size_t *nread);
-};
-
-#define NACL_IRT_MEMORY_v0_1    "nacl-irt-memory-0.1"
-struct nacl_irt_memory {
-  int (*sysbrk)(void **newbrk);
-  int (*mmap)(void **addr, size_t len, int prot, int flags, int fd, off_t off);
-  int (*munmap)(void *addr, size_t len);
-};
-
-struct irt_holder {
-  TYPE_nacl_irt_query __nacl_irt_query;
-  struct nacl_irt_basic __libnacl_irt_basic;
-  struct nacl_irt_fdio __libnacl_irt_fdio;
-//struct nacl_irt_filename __libnacl_irt_filename;
-  struct nacl_irt_memory __libnacl_irt_memory;
-//struct nacl_irt_dyncode __libnacl_irt_dyncode;
-//struct nacl_irt_tls __libnacl_irt_tls;
-//struct nacl_irt_blockhook __libnacl_irt_blockhook;
-
-};
-
-struct irt_holder ih;
-
-
 
 /*
  * Scan the auxv for AT_SYSINFO, which is the pointer to the IRT query function.
