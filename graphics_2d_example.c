@@ -553,43 +553,13 @@ enum NaClStartupInfoIndex {
 //void __pthread_shutdown(void);
 
 /*
- * Return the count of argument strings.
- */
-static inline __attribute__((unused))
-int nacl_startup_argc(const uint32_t info[]) {
-  return info[NACL_STARTUP_ARGC];
-}
-
-/*
- * Return the vector of argument strings.
- */
-static inline __attribute__((unused))
-char **nacl_startup_argv(const uint32_t info[]) {
-  return (char **) &info[NACL_STARTUP_ARGV];
-}
-
-/*
- * Return the count of environment strings.
- */
-static inline __attribute__((unused))
-int nacl_startup_envc(const uint32_t info[]) {
-  return info[NACL_STARTUP_ENVC];
-}
-
-/*
- * Return the vector of environment strings.
- */
-static inline __attribute__((unused))
-char **nacl_startup_envp(const uint32_t info[]) {
-  return &nacl_startup_argv(info)[nacl_startup_argc(info) + 1];
-}
-
-/*
  * Return the vector of auxiliary data items.
  */
 static inline __attribute__((unused))
 Elf32_auxv_t *nacl_startup_auxv(const uint32_t info[]) {
-  char **envend = &nacl_startup_envp(info)[nacl_startup_envc(info) + 1];
+  char ** argv = (char**) &info[NACL_STARTUP_ARGV];
+  char ** envp = (char**) &argv[info[NACL_STARTUP_ARGC] + 1];
+  char **envend = &envp[info[NACL_STARTUP_ENVC] + 1];
   return (Elf32_auxv_t *) envend;
 }
 
