@@ -504,9 +504,9 @@ const static struct PP_ThreadFunctions thread_funcs = {
   thread_join
   };*/
 
-static void __nacl_register_thread_creator(const struct nacl_irt_ppapihook *hooks) {
-  //  hooks->ppapi_register_thread_creator(&thread_funcs);
-}
+//static void __nacl_register_thread_creator(const struct nacl_irt_ppapihook *hooks) {
+//  hooks->ppapi_register_thread_creator(&thread_funcs);
+//}
 
 static int PpapiPluginStart(TYPE_nacl_irt_query query_func) {
   if (NULL == query_func)
@@ -523,9 +523,9 @@ static int PpapiPluginStart(TYPE_nacl_irt_query query_func) {
   struct nacl_irt_ppapihook hooks;
   if (sizeof(hooks) != query_func(NACL_IRT_PPAPIHOOK_v0_1,
                                   &hooks, sizeof(hooks)))
-    fatal_error("PpapiPluginStart: PPAPI hooks not found\n");
+  fatal_error("PpapiPluginStart: PPAPI hooks not found\n");
 
-  __nacl_register_thread_creator(&hooks);
+//  __nacl_register_thread_creator(&hooks);
 
   return hooks.ppapi_start(&funcs);
 }
