@@ -484,35 +484,9 @@ struct nacl_irt_ppapihook {
   void (*ppapi_register_thread_creator)(const struct PP_ThreadFunctions *);
 };
 
-/*                                                                                                                                                                                                                                  
- * TODO(mcgrathr): This extremely stupid function should not exist.
- * If the startup calling sequence were sane, this would be done
- * someplace that has the initial pointer locally rather than stealing
- * it from environ.
- * See http://code.google.com/p/nativeclient/issues/detail?id=651 */
-static Elf32_auxv_t *find_auxv(void) {
-  /*
-   * This presumes environ has its startup-time value on the stack.   */
-  char **ep = environ;
-  while (*ep != NULL)
-    ++ep;
-  return (void *) (ep + 1);
-}
 
 typedef size_t (*TYPE_nacl_irt_query)(const char *interface_ident,
                                       void *table, size_t tablesize);
-
-/*                                                                                                                                                                                                                                  
- * Scan the auxv for AT_SYSINFO, which is the pointer to the IRT query function.
- */
-static TYPE_nacl_irt_query grok_auxv(const Elf32_auxv_t *auxv) {
-  const Elf32_auxv_t *av;
-  for (av = auxv; av->a_type != AT_NULL; ++av) {
-    if (av->a_type == AT_SYSINFO)
-      return (TYPE_nacl_irt_query) av->a_un.a_val;
-  }
-  return NULL;
-}
 
 /*static int thread_create(uintptr_t *tid,
                          void (*func)(void *thread_argument),
@@ -535,9 +509,7 @@ static void __nacl_register_thread_creator(const struct nacl_irt_ppapihook *hook
   //  hooks->ppapi_register_thread_creator(&thread_funcs);
 }
 
-static int PpapiPluginStart(const struct PP_StartFunctions *funcs) {
-  TYPE_nacl_irt_query query_func = grok_auxv(find_auxv());
-
+static int PpapiPluginStart(TYPE_nacl_irt_query query_func, const struct PP_StartFunctions *funcs) {
   if (NULL == query_func)
     fatal_error("PpapiPluginStart: No AT_SYSINFO item found in auxv, "
                 "so cannot start PPAPI.  Is the IRT library not present?\n");
@@ -557,10 +529,6 @@ static const struct PP_StartFunctions ppapi_app_start_callbacks = {
   PPP_ShutdownModule,
   PPP_GetInterface
 };
-
-int main(int argc, char** argv, char **envp) {
-  return PpapiPluginStart(&ppapi_app_start_callbacks);
-}
 
 /*
  * The true entry point for untrusted code is called with the normal C ABI,
@@ -738,39 +706,19 @@ void __libnacl_irt_init(Elf32_auxv_t *auxv) {
  * See nacl_startup.h for the layout at the argument pointer.
  */
 void _start(uint32_t *info) {
-  void (*fini)(void) = nacl_startup_fini(info);
-  int argc = nacl_startup_argc(info);
-  char **argv = nacl_startup_argv(info);
   char **envp = nacl_startup_envp(info);
   Elf32_auxv_t *auxv = nacl_startup_auxv(info);
 
   environ = envp;
 
   __libnacl_irt_init(auxv);
-  char * msg = "_start, 50\n";
-  write(2, msg, strlen(msg));
-
-  /*
-   * If we were started by a dynamic linker, then it passed its finalizer
-   * function here.  For static linking, this is always NULL.
-   */
-  //  if (fini != NULL)
-  //    atexit(fini);
-
-  //  if (&__libc_fini_array)
-  //    atexit(&__libc_fini_array);
-  //  else
-  //    atexit(&_fini);
-
-  //  __pthread_initialize();
-  //  atexit(&__pthread_shutdown);
 
   if (&__libc_init_array)
     __libc_init_array();
   else
     _init();
 
-  _exit(main(argc, argv, envp));
+  _exit(PpapiPluginStart(ih.__nacl_irt_query, &ppapi_app_start_callbacks));
 
   /*NOTREACHED*/
   while (1) *(volatile int *) 0;  /* Crash.  */
