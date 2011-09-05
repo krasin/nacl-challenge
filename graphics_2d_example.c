@@ -549,11 +549,6 @@ enum NaClStartupInfoIndex {
   NACL_STARTUP_ARGV   /* argv[0] pointer.  */
 };
 
-void __libc_init_array(void) __attribute__((weak));
-void __libc_fini_array(void) __attribute__((weak));
-void _init(void) __attribute__((weak));
-void _fini(void) __attribute__((weak));
-
 //void __pthread_initialize(void);
 //void __pthread_shutdown(void);
 
@@ -712,11 +707,6 @@ void _start(uint32_t *info) {
   environ = envp;
 
   __libnacl_irt_init(auxv);
-
-  if (&__libc_init_array)
-    __libc_init_array();
-  else
-    _init();
 
   _exit(PpapiPluginStart(ih.__nacl_irt_query, &ppapi_app_start_callbacks));
 
