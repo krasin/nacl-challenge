@@ -292,6 +292,13 @@ typedef size_t (*TYPE_nacl_irt_query)(const char *interface_ident,
 
 /**************************************************** END OF HEADERS ***************************************/
 
+struct InstanceInfo {
+  PP_Instance pp_instance;
+  struct PP_Size last_size;
+
+  struct InstanceInfo* next;
+};
+
 struct bss_killer {
   TYPE_nacl_irt_query __nacl_irt_query;
   struct nacl_irt_basic __libnacl_irt_basic;
@@ -308,22 +315,12 @@ struct bss_killer {
   const struct PPB_Graphics2D* g_graphics_2d_interface;
   const struct PPB_ImageData* g_image_data_interface;
   const struct PPB_Instance* g_instance_interface;
+
+  /** Linked list of all live instances. */
+  struct InstanceInfo* all_instances;
 };
 
 struct bss_killer ih;
-
-
-/* PPP_Instance implementation -----------------------------------------------*/
-
-struct InstanceInfo {
-  PP_Instance pp_instance;
-  struct PP_Size last_size;
-
-  struct InstanceInfo* next;
-};
-
-/** Linked list of all live instances. */
-struct InstanceInfo* all_instances = NULL;
 
 /** Returns a refed resource corresponding to the created graphics 2d. */
 PP_Resource MakeAndBindGraphics2D(PP_Instance instance,
@@ -385,7 +382,7 @@ void Repaint(struct InstanceInfo* instance, const struct PP_Size* size) {
 
 /** Returns the info for the given instance, or NULL if it's not found. */
 struct InstanceInfo* FindInstance(PP_Instance instance) {
-  struct InstanceInfo* cur = all_instances;
+  struct InstanceInfo* cur = ih.all_instances;
   while (cur) {
     if (cur->pp_instance == instance)
       return cur;
@@ -404,8 +401,8 @@ PP_Bool Instance_DidCreate(PP_Instance instance,
   info->last_size.height = 0;
 
   /* Insert into linked list of live instances. */
-  info->next = all_instances;
-  all_instances = info;
+  info->next = ih.all_instances;
+  ih.all_instances = info;
   return PP_TRUE;
 }
 
