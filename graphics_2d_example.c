@@ -15,6 +15,7 @@
 #define AT_SYSINFO      32  /* System call entry point */
 
 #define NULL 0
+#define PP_OK 0
 
 typedef short int16_t;
 typedef unsigned short uint16_t;
@@ -67,30 +68,6 @@ PP_INLINE struct PP_CompletionCallback PP_MakeCompletionCallback(
   cc.flags = PP_COMPLETIONCALLBACK_FLAG_NONE;
   return cc;
 }
-
-// #include "ppapi/c/pp_errors.h"
-
-enum {
-  PP_OK = 0,
-  PP_OK_COMPLETIONPENDING = -1,
-  PP_ERROR_FAILED = -2,
-  PP_ERROR_ABORTED = -3,
-  PP_ERROR_BADARGUMENT = -4,
-  PP_ERROR_BADRESOURCE = -5,
-  PP_ERROR_NOINTERFACE = -6,
-  PP_ERROR_NOACCESS = -7,
-  PP_ERROR_NOMEMORY = -8,
-  PP_ERROR_NOSPACE = -9,
-  PP_ERROR_NOQUOTA = -10,
-  PP_ERROR_INPROGRESS = -11,
-  PP_ERROR_NOTSUPPORTED = -12,
-  PP_ERROR_FILENOTFOUND = -20,
-  PP_ERROR_FILEEXISTS = -21,
-  PP_ERROR_FILETOOBIG = -22,
-  PP_ERROR_FILECHANGED = -23,
-  PP_ERROR_TIMEDOUT = -30,
-  PP_ERROR_USERCANCEL = -40
-};
 
 // #include "ppapi/c/pp_instance.h"
 
