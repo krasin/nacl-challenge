@@ -34,7 +34,7 @@ struct dirent;
 struct stat;
 
 //static ssize_t write(int fd, const void *buf, size_t count);
-static void *malloc(size_t size);
+//static void *malloc(size_t size);
 static size_t strlen(const char *str);
 int str_eq(const char *s1, const char *s2);
 static void _exit(int status);
@@ -316,8 +316,10 @@ struct bss_killer {
   const struct PPB_ImageData* g_image_data_interface;
   const struct PPB_Instance* g_instance_interface;
 
-  /** Linked list of all live instances. */
-  struct InstanceInfo* all_instances;
+  /* This demo supports one instance only */
+  struct InstanceInfo the_instance;
+
+  struct PPP_Instance ppp_instance;
 };
 
 struct bss_killer ih;
@@ -380,29 +382,15 @@ void Repaint(struct InstanceInfo* instance, const struct PP_Size* size) {
   ih.g_core_interface->ReleaseResource(image);
 }
 
-/** Returns the info for the given instance, or NULL if it's not found. */
-struct InstanceInfo* FindInstance(PP_Instance instance) {
-  struct InstanceInfo* cur = ih.all_instances;
-  while (cur) {
-    if (cur->pp_instance == instance)
-      return cur;
-  }
-  return NULL;
-}
-
 PP_Bool Instance_DidCreate(PP_Instance instance,
                            uint32_t argc,
                            const char* argn[],
                            const char* argv[]) {
-  struct InstanceInfo* info =
-      (struct InstanceInfo*)malloc(sizeof(struct InstanceInfo));
+  struct InstanceInfo* info = &ih.the_instance;
   info->pp_instance = instance;
   info->last_size.width = 0;
   info->last_size.height = 0;
 
-  /* Insert into linked list of live instances. */
-  info->next = ih.all_instances;
-  ih.all_instances = info;
   return PP_TRUE;
 }
 
@@ -413,9 +401,10 @@ void Instance_DidDestroy(PP_Instance instance) {
 void Instance_DidChangeView(PP_Instance pp_instance,
                             const struct PP_Rect* position,
                             const struct PP_Rect* clip) {
-  struct InstanceInfo* info = FindInstance(pp_instance);
-  if (!info)
+  struct InstanceInfo* info = &ih.the_instance;
+  if (info->pp_instance != pp_instance) {
     return;
+  }
 
   if (info->last_size.width != position->size.width ||
       info->last_size.height != position->size.height) {
@@ -460,7 +449,7 @@ PP_EXPORT void PPP_ShutdownModule() {
 
 PP_EXPORT const void* PPP_GetInterface(const char* interface_name) {
   if (str_eq(interface_name, PPP_INSTANCE_INTERFACE)) {
-    struct PPP_Instance* ii = (struct PPP_Instance*)malloc(sizeof(*ii));
+    struct PPP_Instance* ii = &ih.ppp_instance;
     ii->DidCreate = &Instance_DidCreate;
     ii->DidDestroy =  &Instance_DidDestroy;
     ii->DidChangeView = &Instance_DidChangeView;
@@ -596,7 +585,7 @@ void __libnacl_irt_init(Elf32_auxv_t *auxv) {
   DO_QUERY(NACL_IRT_BASIC_v0_1, ih, basic);
   DO_QUERY(NACL_IRT_FDIO_v0_1, ih, fdio);
   //  DO_QUERY(NACL_IRT_FILENAME_v0_1, filename);
-  DO_QUERY(NACL_IRT_MEMORY_v0_1, ih, memory);
+  //  DO_QUERY(NACL_IRT_MEMORY_v0_1, ih, memory);
   //  DO_QUERY(NACL_IRT_DYNCODE_v0_1, dyncode);
   //  DO_QUERY(NACL_IRT_TLS_v0_1, tls);
   //  DO_QUERY(NACL_IRT_BLOCKHOOK_v0_1, blockhook);
@@ -637,11 +626,11 @@ int str_eq(const char *s1, const char *s2) {
   return (*s1 == 0 && *s2 == 0);
 }
 
-static void *malloc(size_t size) {
-  void *res = 0;
-  int ret = ih.__libnacl_irt_memory.mmap(&res, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  return res;
-}
+//static void *malloc(size_t size) {
+//  void *res = 0;
+//  int ret = ih.__libnacl_irt_memory.mmap(&res, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+//  return res;
+//}
 
 //static ssize_t write(int fd, const void *buf, size_t count) {
 //  ssize_t wrote;
