@@ -33,8 +33,7 @@ struct timespec;
 struct dirent;
 struct stat;
 
-
-static ssize_t write(int fd, const void *buf, size_t count);
+//static ssize_t write(int fd, const void *buf, size_t count);
 static void *malloc(size_t size);
 static size_t strlen(const char *str);
 int str_eq(const char *s1, const char *s2);
@@ -436,8 +435,6 @@ struct PP_StartFunctions {
   const void *(*PPP_GetInterface)(const char *interface_name);
 };
 
-static void fatal_error(const char *message);
-
 /* Define 32-bit specific types */
 typedef uint32_t    Elf32_Addr;   /* alignment 4 */
 typedef uint16_t    Elf32_Half;   /* alignment 2 */
@@ -482,21 +479,14 @@ typedef size_t (*TYPE_nacl_irt_query)(const char *interface_ident,
                                       void *table, size_t tablesize);
 
 static int PpapiPluginStart(TYPE_nacl_irt_query query_func) {
-  if (NULL == query_func)
-    fatal_error("PpapiPluginStart: No AT_SYSINFO item found in auxv, "
-                "so cannot start PPAPI.  Is the IRT library not present?\n");
-
   struct PP_StartFunctions funcs = {
     PPP_InitializeModule,
     PPP_ShutdownModule,
     PPP_GetInterface
   };
 
-
   struct nacl_irt_ppapihook hooks;
-  if (sizeof(hooks) != query_func(NACL_IRT_PPAPIHOOK_v0_1,
-                                  &hooks, sizeof(hooks)))
-    fatal_error("PpapiPluginStart: PPAPI hooks not found\n");
+  query_func(NACL_IRT_PPAPIHOOK_v0_1, &hooks, sizeof(hooks));
 
   return hooks.ppapi_start(&funcs);
 }
@@ -638,11 +628,6 @@ void _exit(int status) {
   while (1) *(volatile int *) 0;  /* Crash.  */
 }
 
-static void fatal_error(const char *message) {
-  write(2, message, strlen(message));
-  _exit(127);
-}
-
 int str_eq(const char *s1, const char *s2) {
   while (*s1 != 0 && *s2 != 0) {
     if (*s1 != *s2) {
@@ -664,17 +649,8 @@ static void *malloc(size_t size) {
   return res;
 }
 
-static size_t strlen(const char *str) {
-  size_t l = 0;
-  while (*str != 0) {
-    str++;
-    l++;
-  }
-  return l;
-}
-
-static ssize_t write(int fd, const void *buf, size_t count) {
-  ssize_t wrote;
-  ih.__libnacl_irt_fdio.write(fd, buf, count, &wrote);
-  return wrote;
-}
+//static ssize_t write(int fd, const void *buf, size_t count) {
+//  ssize_t wrote;
+//  ih.__libnacl_irt_fdio.write(fd, buf, count, &wrote);
+//  return wrote;
+//}
