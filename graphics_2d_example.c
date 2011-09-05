@@ -558,9 +558,7 @@ enum NaClStartupInfoIndex {
 static inline __attribute__((unused))
 Elf32_auxv_t *nacl_startup_auxv(const uint32_t info[]) {
   char ** argv = (char**) &info[NACL_STARTUP_ARGV];
-  char ** envp = (char**) &argv[info[NACL_STARTUP_ARGC] + 1];
-  char **envend = &envp[info[NACL_STARTUP_ENVC] + 1];
-  return (Elf32_auxv_t *) envend;
+  return (Elf32_auxv_t *) &argv[info[NACL_STARTUP_ENVC] + info[NACL_STARTUP_ARGC] + 2];
 }
 
 struct timeval;
