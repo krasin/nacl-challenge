@@ -9,6 +9,11 @@
 #define MAP_PRIVATE      0x02  /* Changes are private.  */
 #define MAP_ANONYMOUS    0x20  /* Don't use a file.  */
 
+/* Keys for auxiliary vector (auxv). */
+#define AT_NULL         0   /* Terminating item in auxv array */
+#define AT_ENTRY        9   /* Entry point of the executable */
+#define AT_SYSINFO      32  /* System call entry point */
+
 #define NULL 0
 
 typedef short int16_t;
@@ -162,7 +167,6 @@ struct PP_Rect {
 
 // #include "ppapi/c/ppb_graphics_2d.h"
 
-#define PPB_GRAPHICS_2D_INTERFACE_0_4 "PPB_Graphics2D;0.4"
 #define PPB_GRAPHICS_2D_INTERFACE_1_0 "PPB_Graphics2D;1.0"
 #define PPB_GRAPHICS_2D_INTERFACE PPB_GRAPHICS_2D_INTERFACE_1_0
 
@@ -199,7 +203,6 @@ struct PP_ImageDataDesc {
   int32_t stride;
 };
 
-#define PPB_IMAGEDATA_INTERFACE_0_3 "PPB_ImageData;0.3"
 #define PPB_IMAGEDATA_INTERFACE_1_0 "PPB_ImageData;1.0"
 #define PPB_IMAGEDATA_INTERFACE PPB_IMAGEDATA_INTERFACE_1_0
 
@@ -218,7 +221,6 @@ struct PPB_ImageData {
 
 // #include "ppapi/c/ppb_instance.h"
 
-#define PPB_INSTANCE_INTERFACE_0_5 "PPB_Instance;0.5"
 #define PPB_INSTANCE_INTERFACE_1_0 "PPB_Instance;1.0"
 #define PPB_INSTANCE_INTERFACE PPB_INSTANCE_INTERFACE_1_0
 
@@ -454,11 +456,6 @@ typedef struct {
   } a_un;
 } Elf32_auxv_t;
 
-/* Keys for auxiliary vector (auxv). */
-#define AT_NULL         0   /* Terminating item in auxv array */
-#define AT_ENTRY        9   /* Entry point of the executable */
-#define AT_SYSINFO      32  /* System call entry point */
-
 struct PP_ThreadFunctions {
   /*
    * This is a cut-down version of pthread_create()/pthread_join().
@@ -484,27 +481,6 @@ struct nacl_irt_ppapihook {
 typedef size_t (*TYPE_nacl_irt_query)(const char *interface_ident,
                                       void *table, size_t tablesize);
 
-/*static int thread_create(uintptr_t *tid,
-                         void (*func)(void *thread_argument),
-                         void *thread_argument) {
-  return pthread_create((pthread_t *) tid, NULL,
-			(void *(*)(void *thread_argument)) func,
-			thread_argument);
-}
-
-static int thread_join(uintptr_t tid) {
-  return pthread_join((pthread_t) tid, NULL);
-}
-
-const static struct PP_ThreadFunctions thread_funcs = {
-  thread_create,
-  thread_join
-  };*/
-
-//static void __nacl_register_thread_creator(const struct nacl_irt_ppapihook *hooks) {
-//  hooks->ppapi_register_thread_creator(&thread_funcs);
-//}
-
 static int PpapiPluginStart(TYPE_nacl_irt_query query_func) {
   if (NULL == query_func)
     fatal_error("PpapiPluginStart: No AT_SYSINFO item found in auxv, "
@@ -520,9 +496,7 @@ static int PpapiPluginStart(TYPE_nacl_irt_query query_func) {
   struct nacl_irt_ppapihook hooks;
   if (sizeof(hooks) != query_func(NACL_IRT_PPAPIHOOK_v0_1,
                                   &hooks, sizeof(hooks)))
-  fatal_error("PpapiPluginStart: PPAPI hooks not found\n");
-
-//  __nacl_register_thread_creator(&hooks);
+    fatal_error("PpapiPluginStart: PPAPI hooks not found\n");
 
   return hooks.ppapi_start(&funcs);
 }
@@ -604,7 +578,7 @@ struct irt_holder ih;
  * Scan the auxv for AT_SYSINFO, which is the pointer to the IRT query function.
  * Stash that for later use.
  */
-static void grok_auxv2(const Elf32_auxv_t *auxv) {
+static void grok_auxv(const Elf32_auxv_t *auxv) {
   const Elf32_auxv_t *av;
   for (av = auxv; av->a_type != AT_NULL; ++av) {
     if (av->a_type == AT_SYSINFO) {
@@ -633,7 +607,7 @@ static void do_irt_query(const char *interface_ident,
  * The query function's address is passed via AT_SYSINFO in auxv.
  */
 void __libnacl_irt_init(Elf32_auxv_t *auxv) {
-  grok_auxv2(auxv);
+  grok_auxv(auxv);
 
   DO_QUERY(NACL_IRT_BASIC_v0_1, ih, basic);
   DO_QUERY(NACL_IRT_FDIO_v0_1, ih, fdio);
