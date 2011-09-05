@@ -6,6 +6,9 @@
 #define PROT_READ        0x1
 #define PROT_WRITE       0x2
 
+#define MAP_PRIVATE      0x02  /* Changes are private.  */
+#define MAP_ANONYMOUS    0x20  /* Don't use a file.  */
+
 #define NULL 0
 
 typedef short int16_t;
@@ -19,6 +22,12 @@ typedef unsigned long long uint64_t;
 typedef unsigned int* uintptr_t;
 typedef long int  clock_t;
 typedef long int off_t;
+
+struct timeval;
+struct timespec;
+struct dirent;
+struct stat;
+
 
 static ssize_t write(int fd, const void *buf, size_t count);
 static void *malloc(size_t size);
@@ -354,19 +363,7 @@ PP_Bool Instance_DidCreate(PP_Instance instance,
 }
 
 void Instance_DidDestroy(PP_Instance instance) {
-  /* Find the matching item in the linked list, delete it, and patch the
-   * links.
-   */
-  /*  struct InstanceInfo** prev_ptr = &all_instances;
-  struct InstanceInfo* cur = all_instances;
-  while (cur) {
-    if (instance == cur->pp_instance) {
-      *prev_ptr = cur->next;
-      free(cur);
-      return;
-    }
-    prev_ptr = &cur->next;
-    }*/
+  // Don't destroy anything. It's a demo!
 }
 
 void Instance_DidChangeView(PP_Instance pp_instance,
@@ -549,9 +546,6 @@ enum NaClStartupInfoIndex {
   NACL_STARTUP_ARGV   /* argv[0] pointer.  */
 };
 
-//void __pthread_initialize(void);
-//void __pthread_shutdown(void);
-
 /*
  * Return the vector of auxiliary data items.
  */
@@ -560,9 +554,6 @@ Elf32_auxv_t *nacl_startup_auxv(const uint32_t info[]) {
   char ** argv = (char**) &info[NACL_STARTUP_ARGV];
   return (Elf32_auxv_t *) &argv[info[NACL_STARTUP_ENVC] + info[NACL_STARTUP_ARGC] + 2];
 }
-
-struct timeval;
-struct timespec;
 
 #define NACL_IRT_BASIC_v0_1     "nacl-irt-basic-0.1"
 struct nacl_irt_basic {
@@ -573,9 +564,6 @@ struct nacl_irt_basic {
   int (*sched_yield)(void);
   int (*sysconf)(int name, int *value);
 };
-
-struct dirent;
-struct stat;
 
 #define NACL_IRT_FDIO_v0_1      "nacl-irt-fdio-0.1"
 struct nacl_irt_fdio {
@@ -704,9 +692,6 @@ int strcmp(const char *s1, const char *s2) {
     return 1;
   }
 }
-
-#define MAP_PRIVATE      0x02  /* Changes are private.  */
-#define MAP_ANONYMOUS    0x20  /* Don't use a file.  */
 
 static void *malloc(size_t size) {
   void *res = 0;
