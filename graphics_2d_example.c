@@ -37,7 +37,7 @@ struct stat;
 static ssize_t write(int fd, const void *buf, size_t count);
 static void *malloc(size_t size);
 static size_t strlen(const char *str);
-static int strcmp(const char *s1, const char *s2);
+int str_eq(const char *s1, const char *s2);
 static void _exit(int status);
 
 // #include "ppapi/c/pp_macros.h"
@@ -417,7 +417,7 @@ PP_EXPORT void PPP_ShutdownModule() {
 }
 
 PP_EXPORT const void* PPP_GetInterface(const char* interface_name) {
-  if (strcmp(interface_name, PPP_INSTANCE_INTERFACE) == 0) {
+  if (str_eq(interface_name, PPP_INSTANCE_INTERFACE)) {
     struct PPP_Instance* ii = (struct PPP_Instance*)malloc(sizeof(*ii));
     ii->DidCreate = &Instance_DidCreate;
     ii->DidDestroy =  &Instance_DidDestroy;
@@ -639,12 +639,11 @@ void _exit(int status) {
 }
 
 static void fatal_error(const char *message) {
-  // TODO: implement write. It is important to know the reason to fail.
   write(2, message, strlen(message));
   _exit(127);
 }
 
-int strcmp(const char *s1, const char *s2) {
+int str_eq(const char *s1, const char *s2) {
   while (*s1 != 0 && *s2 != 0) {
     if (*s1 != *s2) {
       if (*s1 > *s2) {
@@ -656,15 +655,7 @@ int strcmp(const char *s1, const char *s2) {
     s1++;
     s2++;
   }
-  if (*s1 == 0 && *s2 == 0) {
-    return 0;
-  }
-  if (*s1 == 0) {
-    return -1;
-  }
-  if (*s2 == 0) {
-    return 1;
-  }
+  return (*s1 == 0 && *s2 == 0);
 }
 
 static void *malloc(size_t size) {
@@ -675,9 +666,6 @@ static void *malloc(size_t size) {
 
 static size_t strlen(const char *str) {
   size_t l = 0;
-  if (str == NULL) {
-    return 0;
-  }
   while (*str != 0) {
     str++;
     l++;
