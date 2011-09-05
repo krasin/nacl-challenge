@@ -20,7 +20,6 @@ typedef unsigned int* uintptr_t;
 typedef long int  clock_t;
 typedef long int off_t;
 
-char** environ;
 static ssize_t write(int fd, const void *buf, size_t count);
 static void *malloc(size_t size);
 static size_t strlen(const char *str);
@@ -701,10 +700,7 @@ void __libnacl_irt_init(Elf32_auxv_t *auxv) {
  * See nacl_startup.h for the layout at the argument pointer.
  */
 void _start(uint32_t *info) {
-  char **envp = nacl_startup_envp(info);
   Elf32_auxv_t *auxv = nacl_startup_auxv(info);
-
-  environ = envp;
 
   __libnacl_irt_init(auxv);
 
