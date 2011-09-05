@@ -508,10 +508,17 @@ static void __nacl_register_thread_creator(const struct nacl_irt_ppapihook *hook
   //  hooks->ppapi_register_thread_creator(&thread_funcs);
 }
 
-static int PpapiPluginStart(TYPE_nacl_irt_query query_func, const struct PP_StartFunctions *funcs) {
+static int PpapiPluginStart(TYPE_nacl_irt_query query_func) {
   if (NULL == query_func)
     fatal_error("PpapiPluginStart: No AT_SYSINFO item found in auxv, "
                 "so cannot start PPAPI.  Is the IRT library not present?\n");
+
+  struct PP_StartFunctions funcs = {
+    PPP_InitializeModule,
+    PPP_ShutdownModule,
+    PPP_GetInterface
+  };
+
 
   struct nacl_irt_ppapihook hooks;
   if (sizeof(hooks) != query_func(NACL_IRT_PPAPIHOOK_v0_1,
@@ -520,14 +527,8 @@ static int PpapiPluginStart(TYPE_nacl_irt_query query_func, const struct PP_Star
 
   __nacl_register_thread_creator(&hooks);
 
-  return hooks.ppapi_start(funcs);
+  return hooks.ppapi_start(&funcs);
 }
-
-static const struct PP_StartFunctions ppapi_app_start_callbacks = {
-  PPP_InitializeModule,
-  PPP_ShutdownModule,
-  PPP_GetInterface
-};
 
 /*
  * The true entry point for untrusted code is called with the normal C ABI,
@@ -550,14 +551,6 @@ enum NaClStartupInfoIndex {
 
 //void __pthread_initialize(void);
 //void __pthread_shutdown(void);
-
-/*
- * Return the dynamic linker finalizer function.
- */
-static inline __attribute__((unused))
-void (*nacl_startup_fini(const uint32_t info[]))(void) {
-  return (void (*)(void)) info[NACL_STARTUP_FINI];
-}
 
 /*
  * Return the count of argument strings.
@@ -704,7 +697,7 @@ void _start(uint32_t *info) {
 
   __libnacl_irt_init(auxv);
 
-  _exit(PpapiPluginStart(ih.__nacl_irt_query, &ppapi_app_start_callbacks));
+  _exit(PpapiPluginStart(ih.__nacl_irt_query));
 
   /*NOTREACHED*/
   while (1) *(volatile int *) 0;  /* Crash.  */
